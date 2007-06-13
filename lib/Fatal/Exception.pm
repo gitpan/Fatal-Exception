@@ -2,7 +2,7 @@
 
 package Fatal::Exception;
 use 5.006;
-our $VERSION = '0.01';
+our $VERSION = '0.0101';
 
 =head1 NAME
 
@@ -89,7 +89,8 @@ sub import {
                 name=>$name,
                 pkg=>$callpkg,
                 sub=>$sub,
-                void=>$void);
+                void=>$void,
+	    );
         }
     }
 
@@ -175,12 +176,11 @@ sub __make_fatal {
             my $code = "package $args{pkg};\n"
                      . "sub $name ($proto) {\n"
                      .      __write_invocation(
+		                (map { $_ => $args{$_} } qw<exception name void>),
                                 argvs     => $argvs,
                                 call      => $call,
-                                exception => $args{exception},
-                                name      => $args{name},
                                 orig      => 1,
-                                void      => $args{void})
+			    )
                      . "}\n";
             print STDERR $code if $Debug;
 
@@ -217,11 +217,10 @@ sub __make_fatal {
     my $code = "package $args{pkg};\n"
              . "sub $name$code_proto {\n"
              .      __write_invocation(
+		        (map { $_ => $args{$_} } qw<exception name void>),
                         argvs     => $argvs,
                         call      => $call,
-                        exception => $args{exception},
-                        name      => $args{name},
-                        void      => $args{void})
+		    )
              . "}\n";
     print STDERR $code if $Debug;
 
@@ -318,12 +317,9 @@ sub __write_invocation {
         return
             "    "
             . __one_invocation(
+	        (map { $_ => $args{$_} } qw<call exception name orig void>),
                 argv      => \@argv,
-                call      => $args{call},
-                exception => $args{exception},
-                name      => $args{name},
-                orig      => $args{orig},
-                void      => $args{void})
+	      )
             . ";\n";
     }
     else {
@@ -337,12 +333,9 @@ sub __write_invocation {
             push @out,
                 "        return "
                 . __one_invocation(
+	    	    (map { $_ => $args{$_} } qw<call exception name orig void>),
                     argv      => \@argv,
-                    call      => $args{call},
-                    exception => $args{exception},
-                    name      => $args{name},
-                    orig      => $args{orig},
-                    void      => $args{void})
+		  )
                 . ";\n";
         }
         push @out,
@@ -398,11 +391,11 @@ sub __one_invocation {
 
 =item *
 
-L<Exception::Base>
+L<Exception::Base> >= 0.07
 
 =item *
 
-L<Exception::System>
+L<Exception::System> >= 0.06
 
 =back
 

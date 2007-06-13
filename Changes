@@ -1,4 +1,9 @@
 ------------------------------------------------------------------------
+0.0101 | Piotr Roszatycki <dexter@debian.org> | 2007-06-13
+
+* Minor refactoring.
+
+------------------------------------------------------------------------
 0.01 | Piotr Roszatycki <dexter@debian.org> | 2007-05-23
 
 * Initial release.
