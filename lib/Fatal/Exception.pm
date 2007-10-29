@@ -2,7 +2,7 @@
 
 package Fatal::Exception;
 use 5.006;
-our $VERSION = '0.0101';
+our $VERSION = 0.02;
 
 =head1 NAME
 
@@ -10,7 +10,7 @@ Fatal::Exception - succeed or throw exception
 
 =head1 SYNOPSIS
 
-  use Fatal::Exception 'Exception::System' => qw<open close>;
+  use Fatal::Exception 'Exception::System' => qw< open close >;
   open FILE, "/nonexistent";   # throw Exception::System
 
   use Exception::Base 'Exception::My';
@@ -31,11 +31,12 @@ it throws L<Exception::Base> object on error.
 
 
 use strict;
+use warnings;
 
 
 use Exception::Base
-    'Exception::Fatal' => {isa => 'Exception::System'},
-    'Exception::Fatal::Compilation';
+    'Exception::Fatal'              => { isa => 'Exception::Base' },
+    'Exception::Fatal::Compilation' => { isa => 'Exception::Base' };
 
 
 # Switch to enable dump for created wrapper functions
@@ -56,8 +57,8 @@ sub import {
     my $exception = shift || return;
 
     throw Exception::Fatal::Compilation
-          ignore_package=>__PACKAGE__,
-          message=>'Not enough arguments for "' . __PACKAGE__ . '->import"'
+          ignore_package => __PACKAGE__,
+          message => 'Not enough arguments for "' . __PACKAGE__ . '->import"'
         unless @_;
 
     my $mod_version = $exception->VERSION || 0;
@@ -66,8 +67,8 @@ sub import {
         if ($@ ne '') {
             my $error = $@; $error =~ s/ at \(eval.*//s;
             throw Exception::Fatal::Compilation
-                  ignore_package=>__PACKAGE__,
-                  message=>"Cannot find \"$exception\" exception class: $error";
+                  ignore_package => __PACKAGE__,
+                  message => "Cannot find \"$exception\" exception class: $error";
         }
     }
 
@@ -115,7 +116,8 @@ sub unimport {
         __make_not_fatal(
             name=>$name,
             pkg=>$callpkg,
-            sub=>$sub);
+            sub=>$sub
+        );
     }
 }
 
@@ -132,13 +134,13 @@ sub __make_fatal {
 
     # check args
     throw Exception::Fatal::Compilation
-          message=>'Not enough arguments for "' . __PACKAGE__ . '->__make_fatal"'
-        if grep { not defined } @args{qw<exception name pkg sub>};
+          message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_fatal"'
+        if grep { not defined } @args{qw< exception name pkg sub >};
 
 
     throw Exception::Fatal::Compilation
-          ignore_package=>__PACKAGE__,
-          message=>'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
+          ignore_package => __PACKAGE__,
+          message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
         unless $args{name} =~ /^\w+$/;
 
     my($proto, $code_proto, $call, $core, $argvs);
@@ -147,7 +149,7 @@ sub __make_fatal {
     if (defined $Fatalized_Functions{$cache_key} and defined $Not_Fatalized_Functions{$args{sub}}) {
         # already wrapped: restore from cache
         no warnings 'redefine';
-        return *{$args{sub}} = $Fatalized_Functions{$cache_key};
+        return *{ $args{sub} } = $Fatalized_Functions{$cache_key};
     }
     elsif (defined(&{$args{sub}}) and not eval { prototype "CORE::$args{name}" }) {
         # user subroutine
@@ -164,8 +166,8 @@ sub __make_fatal {
 
         # not found as CORE subroutine
         throw Exception::Fatal::Compilation
-              ignore_package=>__PACKAGE__,
-              message=>"\"$args{sub}\" is not a Perl subroutine"
+              ignore_package => __PACKAGE__,
+              message => "\"$args{sub}\" is not a Perl subroutine"
             unless $proto;
 
         # create package's function
@@ -176,7 +178,7 @@ sub __make_fatal {
             my $code = "package $args{pkg};\n"
                      . "sub $name ($proto) {\n"
                      .      __write_invocation(
-		                (map { $_ => $args{$_} } qw<exception name void>),
+		                (map { $_ => $args{$_} } qw< exception name void >),
                                 argvs     => $argvs,
                                 call      => $call,
                                 orig      => 1,
@@ -188,14 +190,14 @@ sub __make_fatal {
             if ($@ ne '') {
                 my $error = $@; $error =~ s/ at \(eval.*//s;
                 throw Exception::Fatal::Compilation
-                      ignore_package=>__PACKAGE__,
-                      message=>"Cannot create \"$args{sub}\" subroutine: $error";
+                      ignore_package => __PACKAGE__,
+                      message => "Cannot create \"$args{sub}\" subroutine: $error";
             }
 
             my $sub = "$args{pkg}::$name";
-            print STDERR "*{$args{sub}} = \\&$sub;\n" if $Debug;
+            print STDERR "*{ $args{sub} } = \\&$sub;\n" if $Debug;
             no warnings 'redefine';
-            *{$args{sub}} = \&$sub;
+            *{ $args{sub} } = \&$sub;
         }
 
         $Not_Fatalized_Functions{$args{sub}} = \&{$args{sub}}
@@ -212,12 +214,12 @@ sub __make_fatal {
     $argvs = __fill_argvs($proto) if not defined $argvs;
 
     # define new named subroutine (anonymous would be harder to debug from stacktrace)
-    my $name = "__$args{name}__Fatal__Exception_$args{exception}" . ($args{void} ? '_void' : '') . "__wrapped";
+    my $name = "__$args{name}__Fatal__Exception__$args{exception}" . ($args{void} ? '_void' : '') . "__wrapped";
     $name =~ tr/:/_/;
     my $code = "package $args{pkg};\n"
              . "sub $name$code_proto {\n"
              .      __write_invocation(
-		        (map { $_ => $args{$_} } qw<exception name void>),
+		        (map { $_ => $args{$_} } qw< exception name void >),
                         argvs     => $argvs,
                         call      => $call,
 		    )
@@ -228,15 +230,15 @@ sub __make_fatal {
     if ($@ ne '') {
         my $error = $@; $error =~ s/ at \(eval.*//s;
         throw Exception::Fatal::Compilation
-              ignore_package=>__PACKAGE__,
-              message=>"Cannot create \"$args{sub}\" subroutine: $error";
+              ignore_package => __PACKAGE__,
+              message => "Cannot create \"$args{sub}\" subroutine: $error";
     }
 
     my $sub = "$args{pkg}::$name";
-    print STDERR "*{$args{sub}} = \\&$sub;\n" if $Debug;
+    print STDERR "*{ $args{sub} } = \\&$sub;\n" if $Debug;
     
     no warnings 'redefine';
-    return *{$args{sub}} = $Fatalized_Functions{$cache_key} = \&$sub;
+    return *{ $args{sub} } = $Fatalized_Functions{$cache_key} = \&$sub;
 }
 
 
@@ -250,13 +252,13 @@ sub __make_not_fatal {
 
     # check args
     throw Exception::Fatal::Compilation
-          message=>'Not enough arguments for "' . __PACKAGE__ . '->__make_non_fatal"'
-        if grep { not defined } @args{qw<name pkg sub>};
+          message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_non_fatal"'
+        if grep { not defined } @args{qw< name pkg sub >};
 
 
     throw Exception::Fatal::Compilation
-          ignore_package=>__PACKAGE__,
-          message=>'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
+          ignore_package => __PACKAGE__,
+          message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
         unless $args{name} =~ /^\w+$/;
 
     # not wrapped - do nothing
@@ -265,7 +267,7 @@ sub __make_not_fatal {
     no strict 'refs';
     no warnings 'redefine';
 
-    return *{$args{sub}} = $Not_Fatalized_Functions{$args{sub}};
+    return *{ $args{sub} } = $Not_Fatalized_Functions{$args{sub}};
 }
 
 
@@ -284,8 +286,8 @@ sub __fill_argvs {
         push(@code, "\@_[$n..\$#_]"), last if $proto =~ s/^\s*(;\s*)?\@//;
         $seen_semi = 1, $n--, next if $proto =~ s/^\s*;//; # XXXX ????
         throw Exception::Fatal::Compile
-              ignore_package=>__PACKAGE__,
-              message=>"Unknown prototype letters: \"$proto\"";
+              ignore_package => __PACKAGE__,
+              message => "Unknown prototype letters: \"$proto\"";
     }
     push(@protos,[$n+1,@code]);
     return \@protos;
@@ -305,8 +307,9 @@ sub __write_invocation {
 
     # check args
     throw Exception::Fatal::Compilation
-          message=>'Not enough arguments for "' . __PACKAGE__ . '->__write_invocation"'
-        if grep { not defined } @args{qw<argvs call exception name>};
+          ignore_package => __PACKAGE__,
+          message => 'Not enough arguments for "' . __PACKAGE__ . '->__write_invocation"'
+        if grep { not defined } @args{qw< argvs call exception name >};
 
     my @argvs = @{ $args{argvs} };
 
@@ -317,7 +320,7 @@ sub __write_invocation {
         return
             "    "
             . __one_invocation(
-	        (map { $_ => $args{$_} } qw<call exception name orig void>),
+	        (map { $_ => $args{$_} } qw< call exception name orig void >),
                 argv      => \@argv,
 	      )
             . ";\n";
@@ -333,7 +336,7 @@ sub __write_invocation {
             push @out,
                 "        return "
                 . __one_invocation(
-	    	    (map { $_ => $args{$_} } qw<call exception name orig void>),
+	    	    (map { $_ => $args{$_} } qw< call exception name orig void >),
                     argv      => \@argv,
 		  )
                 . ";\n";
@@ -341,7 +344,8 @@ sub __write_invocation {
         push @out,
             "    }\n"
           . "    throw Exception::Fatal\n"
-          . "          message=>\"$args{name}: Do not expect to get \" . scalar \@_ . \" arguments\";\n";
+          . "          ignore_level => 1,\n"
+          . "          message => \"$args{name}: Do not expect to get \" . scalar \@_ . \" arguments\";\n";
         return join '', @out;
     }
 }
@@ -360,8 +364,9 @@ sub __one_invocation {
 
     # check args
     throw Exception::Fatal::Compilation
-          message=>'Not enough arguments for "' . __PACKAGE__ . '->__one_invocation"'
-        if grep { not defined } @args{qw<argv call exception name>};
+          ignore_package => __PACKAGE__,
+          message => 'Not enough arguments for "' . __PACKAGE__ . '->__one_invocation"'
+        if grep { not defined } @args{qw< argv call exception name >};
 
     my $argv = join ', ', @{$args{argv}};
     if ($args{orig}) {
@@ -372,12 +377,14 @@ sub __one_invocation {
              . "            ? $args{call}($argv)\n"
              . "            : $args{call}($argv)\n"
              . "                || throw $args{exception}\n"
-             . "                         message=>\"Can't $args{name}\"";
+             . "                         ignore_level => 1,\n"
+             . "                         message => \"Can't $args{name}\"";
     }
     else {
         return "$args{call}($argv)\n"
              . "            || throw $args{exception}\n"
-             . "                     message=>\"Can't $args{name}\"";
+             . "                     ignore_level => 1,\n"
+             . "                     message => \"Can't $args{name}\"";
     }
 }
 
@@ -385,17 +392,21 @@ sub __one_invocation {
 1;
 
 
+__END__
+
+=for readme stop
+
 =head1 PREREQUISITIES
 
 =over
 
 =item *
 
-L<Exception::Base> >= 0.07
+L<Exception::Base> >= 0.12
 
 =item *
 
-L<Exception::System> >= 0.06
+L<Exception::System> >= 0.07
 
 =back
 
@@ -460,13 +471,15 @@ The module was tested with L<Test::Unit::Lite> and L<Devel::Cover>.
 
 If you find the bug, please report it.
 
-=head1 AUTHORS
+=for readme continue
+
+=head1 AUTHOR
 
 Piotr Roszatycki E<lt>dexter@debian.orgE<gt>
 
 =head1 LICENSE
 
-Copyright 2007 by Piotr Roszatycki E<lt>dexter@debian.orgE<gt>.
+Copyright (C) 2007 by Piotr Roszatycki E<lt>dexter@debian.orgE<gt>.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

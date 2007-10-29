@@ -56,11 +56,11 @@ sub test {
 
 package My::ExceptionBase;
 use lib '../lib';	
-use Exception::Base;
+use Exception::Base ':all';
 our $n = 0;
 sub test {
-    try Exception::Base eval { opendir F, '/filenotfound' or throw Exception::Base message=>'Message'; };
-    if (catch Exception::Base my $e) {
+    try eval { opendir F, '/filenotfound' or Exception::Base->throw(message=>'Message'); };
+    if (catch my $e) {
         if ($e->isa('Exception::Base') and $e->with('Message')) { $n++; }
     }
 }
@@ -68,11 +68,11 @@ sub test {
 
 package My::ExceptionBase1;
 use lib 'lib';	
-use Exception::Base;
+use Exception::Base ':all';
 our $n = 0;
 sub test {
-    try Exception::Base eval { opendir F, '/filenotfound' or throw Exception::Base message=>'Message', verbosity=>1; };
-    if (catch Exception::Base my $e) {
+    try eval { opendir F, '/filenotfound' or Exception::Base->throw(message=>'Message', verbosity=>1); };
+    if (catch my $e) {
         if ($e->isa('Exception::Base') and $e->with('Message')) { $n++; }
     }
 }
@@ -90,9 +90,10 @@ sub test {
 package My::FatalException;
 our $n = 0;
 sub test {
+    use Exception::Base ':all';
     use Fatal::Exception 'Exception::Base' => 'opendir';
-    try Exception::Base eval { opendir F, '/filenotfound' };
-    if (catch Exception::Base my $e) {
+    try eval { opendir F, '/filenotfound' };
+    if (catch my $e) {
         if ($e->isa('Exception::Base') and $e->with('Message')) { $n++; }
     }
 }
@@ -102,7 +103,7 @@ package main;
 
 use Benchmark;
 
-timethese(-1, {
+my $result = timethese(-1, {
     '1_Ok'                      => sub { My::Ok::test; },
     '2_DieScalar'               => sub { My::DieScalar::test; },
     '3_DieObject'               => sub { My::DieObject::test; },
@@ -114,3 +115,4 @@ timethese(-1, {
     '9_FatalException'          => sub { My::FatalException::test; },
 });
 
+cmpthese($result);
