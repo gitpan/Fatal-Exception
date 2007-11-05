@@ -9,7 +9,6 @@ WriteMakefile
           'VERSION_FROM' => 'lib/Fatal/Exception.pm',
           'PREREQ_PM' => {
                            'Test::Unit::Lite' => '0.07',
-                           'Exception::System' => '0.07',
                            'Exception::Base' => '0.12'
                          }
         )

@@ -2,7 +2,7 @@
 
 package Fatal::Exception;
 use 5.006;
-our $VERSION = 0.02;
+our $VERSION = 0.0201;
 
 =head1 NAME
 
@@ -395,20 +395,6 @@ sub __one_invocation {
 __END__
 
 =for readme stop
-
-=head1 PREREQUISITIES
-
-=over
-
-=item *
-
-L<Exception::Base> >= 0.12
-
-=item *
-
-L<Exception::System> >= 0.07
-
-=back
 
 =head1 IMPORTS
 

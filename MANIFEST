@@ -1,3 +1,4 @@
+Build.PL
 Changes
 eg/catch_open_file_not_found.pl
 eg/no-use-exception.pl
@@ -5,6 +6,7 @@ eg/non-overridable_builtin_fatal.pl
 lib/Fatal/Exception.pm
 Makefile.PL
 MANIFEST			This list of files
+META.yml
 README
 t/all_tests.t
 t/benchmark.pl
@@ -13,4 +15,3 @@ t/pod.t
 t/pod_coverage.t
 t/test.pl
 t/tlib/Fatal/ExceptionTest.pm
-META.yml
