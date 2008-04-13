@@ -2,7 +2,7 @@
 
 package Fatal::Exception;
 use 5.006;
-our $VERSION = 0.0201;
+our $VERSION = 0.02_02;
 
 =head1 NAME
 
@@ -35,6 +35,7 @@ use warnings;
 
 
 use Exception::Base
+    '+ignore_package' => __PACKAGE__,
     'Exception::Fatal'              => { isa => 'Exception::Base' },
     'Exception::Fatal::Compilation' => { isa => 'Exception::Base' };
 
@@ -57,7 +58,6 @@ sub import {
     my $exception = shift || return;
 
     throw Exception::Fatal::Compilation
-          ignore_package => __PACKAGE__,
           message => 'Not enough arguments for "' . __PACKAGE__ . '->import"'
         unless @_;
 
@@ -67,7 +67,6 @@ sub import {
         if ($@ ne '') {
             my $error = $@; $error =~ s/ at \(eval.*//s;
             throw Exception::Fatal::Compilation
-                  ignore_package => __PACKAGE__,
                   message => "Cannot find \"$exception\" exception class: $error";
         }
     }
@@ -139,7 +138,6 @@ sub __make_fatal {
 
 
     throw Exception::Fatal::Compilation
-          ignore_package => __PACKAGE__,
           message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
         unless $args{name} =~ /^\w+$/;
 
@@ -166,7 +164,6 @@ sub __make_fatal {
 
         # not found as CORE subroutine
         throw Exception::Fatal::Compilation
-              ignore_package => __PACKAGE__,
               message => "\"$args{sub}\" is not a Perl subroutine"
             unless $proto;
 
@@ -190,7 +187,6 @@ sub __make_fatal {
             if ($@ ne '') {
                 my $error = $@; $error =~ s/ at \(eval.*//s;
                 throw Exception::Fatal::Compilation
-                      ignore_package => __PACKAGE__,
                       message => "Cannot create \"$args{sub}\" subroutine: $error";
             }
 
@@ -230,7 +226,6 @@ sub __make_fatal {
     if ($@ ne '') {
         my $error = $@; $error =~ s/ at \(eval.*//s;
         throw Exception::Fatal::Compilation
-              ignore_package => __PACKAGE__,
               message => "Cannot create \"$args{sub}\" subroutine: $error";
     }
 
@@ -257,7 +252,6 @@ sub __make_not_fatal {
 
 
     throw Exception::Fatal::Compilation
-          ignore_package => __PACKAGE__,
           message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
         unless $args{name} =~ /^\w+$/;
 
@@ -286,7 +280,6 @@ sub __fill_argvs {
         push(@code, "\@_[$n..\$#_]"), last if $proto =~ s/^\s*(;\s*)?\@//;
         $seen_semi = 1, $n--, next if $proto =~ s/^\s*;//; # XXXX ????
         throw Exception::Fatal::Compile
-              ignore_package => __PACKAGE__,
               message => "Unknown prototype letters: \"$proto\"";
     }
     push(@protos,[$n+1,@code]);
@@ -307,7 +300,6 @@ sub __write_invocation {
 
     # check args
     throw Exception::Fatal::Compilation
-          ignore_package => __PACKAGE__,
           message => 'Not enough arguments for "' . __PACKAGE__ . '->__write_invocation"'
         if grep { not defined } @args{qw< argvs call exception name >};
 
@@ -364,7 +356,6 @@ sub __one_invocation {
 
     # check args
     throw Exception::Fatal::Compilation
-          ignore_package => __PACKAGE__,
           message => 'Not enough arguments for "' . __PACKAGE__ . '->__one_invocation"'
         if grep { not defined } @args{qw< argv call exception name >};
 
@@ -465,7 +456,7 @@ Piotr Roszatycki E<lt>dexter@debian.orgE<gt>
 
 =head1 LICENSE
 
-Copyright (C) 2007 by Piotr Roszatycki E<lt>dexter@debian.orgE<gt>.
+Copyright (C) 2007, 2008 by Piotr Roszatycki E<lt>dexter@debian.orgE<gt>.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

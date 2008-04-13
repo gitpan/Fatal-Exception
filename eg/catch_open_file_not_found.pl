@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Exception::Base
+    'verbosity' => 3,
     'Exception::IO' => { isa => 'Exception::System' };
 
 
