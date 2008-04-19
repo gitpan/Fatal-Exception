@@ -7,9 +7,9 @@ SYNOPSIS
 
       use Exception::Base 'Exception::My';
       sub juggle { ... }
-      import Fatal::Exception 'Exception::My' => 'juggle';
+      Fatal::Exception->import('Exception::My' => 'juggle');
       juggle;          # succeed or throw exception
-      unimport Fatal::Exception 'juggle';
+      Fatal::Exception->unimport('juggle');
       juggle or die;   # restore original behavior
 
 DESCRIPTION

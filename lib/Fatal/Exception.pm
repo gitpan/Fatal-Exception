@@ -2,7 +2,7 @@
 
 package Fatal::Exception;
 use 5.006;
-our $VERSION = 0.02_02;
+our $VERSION = 0.02_03;
 
 =head1 NAME
 
@@ -15,9 +15,9 @@ Fatal::Exception - succeed or throw exception
 
   use Exception::Base 'Exception::My';
   sub juggle { ... }
-  import Fatal::Exception 'Exception::My' => 'juggle';
+  Fatal::Exception->import('Exception::My' => 'juggle');
   juggle;          # succeed or throw exception
-  unimport Fatal::Exception 'juggle';
+  Fatal::Exception->unimport('juggle');
   juggle or die;   # restore original behavior
 
 =head1 DESCRIPTION
@@ -32,6 +32,10 @@ it throws L<Exception::Base> object on error.
 
 use strict;
 use warnings;
+
+
+# Safe operations on symbol stash
+BEGIN { *Symbol::fetch_glob = sub ($) { no strict 'refs'; \*{$_[0]} } unless defined &Symbol::fetch_glob; }
 
 
 use Exception::Base
@@ -57,17 +61,18 @@ sub import {
     my $pkg = shift;
     my $exception = shift || return;
 
-    throw Exception::Fatal::Compilation
-          message => 'Not enough arguments for "' . __PACKAGE__ . '->import"'
-        unless @_;
+    Exception::Fatal::Compilation->throw(
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->import"'
+    ) unless @_;
 
     my $mod_version = $exception->VERSION || 0;
     if (not $mod_version) {
         eval "use $exception;";
         if ($@ ne '') {
             my $error = $@; $error =~ s/ at \(eval.*//s;
-            throw Exception::Fatal::Compilation
-                  message => "Cannot find \"$exception\" exception class: $error";
+            Exception::Fatal::Compilation->throw(
+                message => "Cannot find \"$exception\" exception class: $error"
+            );
         }
     }
 
@@ -90,7 +95,7 @@ sub import {
                 pkg=>$callpkg,
                 sub=>$sub,
                 void=>$void,
-	    );
+            );
         }
     }
 
@@ -129,25 +134,24 @@ sub __make_fatal {
     #   pkg  - current package name
     #   sub  - full name of sub
     #   void - is function called in scalar context?
-    my(%args) = @_;
+    my (%args) = @_;
 
+#$Debug=1; $SIG{__WARN__} = sub {}; $SIG{__DIE__} = sub { $@ = $_[0]; Exception::Base->throw(message=>"DIE:",max_arg_len=>0) };
     # check args
-    throw Exception::Fatal::Compilation
-          message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_fatal"'
-        if grep { not defined } @args{qw< exception name pkg sub >};
+    Exception::Fatal::Compilation->throw(
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_fatal"'
+    ) if grep { not defined } @args{qw< exception name pkg sub >};
 
+    Exception::Fatal::Compilation->throw(
+        message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
+    ) if not $args{name} =~ /^\w+$/;
 
-    throw Exception::Fatal::Compilation
-          message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
-        unless $args{name} =~ /^\w+$/;
-
-    my($proto, $code_proto, $call, $core, $argvs);
+    my ($proto, $code_proto, $call, $core, $argvs);
     my $cache_key = "$args{sub}:$args{exception}:" . ($args{void} ? 1 : 0);
-    no strict 'refs';
     if (defined $Fatalized_Functions{$cache_key} and defined $Not_Fatalized_Functions{$args{sub}}) {
         # already wrapped: restore from cache
         no warnings 'redefine';
-        return *{ $args{sub} } = $Fatalized_Functions{$cache_key};
+        return *{ Symbol::fetch_glob($args{sub}) } = $Fatalized_Functions{$cache_key};
     }
     elsif (defined(&{$args{sub}}) and not eval { prototype "CORE::$args{name}" }) {
         # user subroutine
@@ -163,9 +167,9 @@ sub __make_fatal {
         $proto = eval { prototype $call };
 
         # not found as CORE subroutine
-        throw Exception::Fatal::Compilation
-              message => "\"$args{sub}\" is not a Perl subroutine"
-            unless $proto;
+        Exception::Fatal::Compilation->throw(
+            message => "\"$args{sub}\" is not a Perl subroutine"
+        ) unless $proto;
 
         # create package's function
         if (not defined &{$args{sub}}) {
@@ -174,30 +178,33 @@ sub __make_fatal {
             my $name = "__$args{name}__Fatal__Exception__not_wrapped";
             my $code = "package $args{pkg};\n"
                      . "sub $name ($proto) {\n"
+                     . "    no strict 'refs';\n"
                      .      __write_invocation(
-		                (map { $_ => $args{$_} } qw< exception name void >),
+                                (map { $_ => $args{$_} } qw< exception name void >),
                                 argvs     => $argvs,
                                 call      => $call,
                                 orig      => 1,
-			    )
+                            )
                      . "}\n";
-            print STDERR $code if $Debug;
+            warn $code if $Debug;
 
             eval $code;
             if ($@ ne '') {
                 my $error = $@; $error =~ s/ at \(eval.*//s;
-                throw Exception::Fatal::Compilation
-                      message => "Cannot create \"$args{sub}\" subroutine: $error";
+                Exception::Fatal::Compilation->throw(
+                    message => "Cannot create \"$args{sub}\" subroutine: $error"
+                );
             }
 
             my $sub = "$args{pkg}::$name";
-            print STDERR "*{ $args{sub} } = \\&$sub;\n" if $Debug;
+            warn "*{ $args{sub} } = \\&$sub;\n" if $Debug;
             no warnings 'redefine';
-            *{ $args{sub} } = \&$sub;
+            *{ Symbol::fetch_glob($args{sub}) } = \&$sub;
         }
 
-        $Not_Fatalized_Functions{$args{sub}} = \&{$args{sub}}
-            unless defined $Not_Fatalized_Functions{$args{sub}};
+        if (not defined $Not_Fatalized_Functions{$args{sub}}) {
+            $Not_Fatalized_Functions{$args{sub}} = \&{$args{sub}};
+        }
     }
 
     if (defined $proto) {
@@ -214,26 +221,28 @@ sub __make_fatal {
     $name =~ tr/:/_/;
     my $code = "package $args{pkg};\n"
              . "sub $name$code_proto {\n"
+             . "    no strict 'refs';\n"
              .      __write_invocation(
-		        (map { $_ => $args{$_} } qw< exception name void >),
+                        (map { $_ => $args{$_} } qw< exception name void >),
                         argvs     => $argvs,
                         call      => $call,
-		    )
+                    )
              . "}\n";
-    print STDERR $code if $Debug;
+    warn $code if $Debug;
 
     my $newsub = eval $code;
     if ($@ ne '') {
         my $error = $@; $error =~ s/ at \(eval.*//s;
-        throw Exception::Fatal::Compilation
-              message => "Cannot create \"$args{sub}\" subroutine: $error";
+        Exception::Fatal::Compilation->throw(
+            message => "Cannot create \"$args{sub}\" subroutine: $error"
+        );
     }
 
     my $sub = "$args{pkg}::$name";
-    print STDERR "*{ $args{sub} } = \\&$sub;\n" if $Debug;
-    
+    warn "*{ $args{sub} } = \\&$sub;\n" if $Debug;
+
     no warnings 'redefine';
-    return *{ $args{sub} } = $Fatalized_Functions{$cache_key} = \&$sub;
+    return *{ Symbol::fetch_glob($args{sub}) } = $Fatalized_Functions{$cache_key} = \&$sub;
 }
 
 
@@ -243,25 +252,24 @@ sub __make_not_fatal {
     #   name - base name of sub
     #   pkg  - current package name
     #   sub  - full name of sub
-    my(%args) = @_;
+    my (%args) = @_;
 
     # check args
-    throw Exception::Fatal::Compilation
-          message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_non_fatal"'
-        if grep { not defined } @args{qw< name pkg sub >};
+    Exception::Fatal::Compilation->throw(
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_non_fatal"'
+    ) if grep { not defined } @args{qw< name pkg sub >};
 
 
-    throw Exception::Fatal::Compilation
-          message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
-        unless $args{name} =~ /^\w+$/;
+    Exception::Fatal::Compilation->throw(
+        message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name}
+    ) if not $args{name} =~ /^\w+$/;
 
     # not wrapped - do nothing
     return unless defined $Not_Fatalized_Functions{$args{sub}};
 
-    no strict 'refs';
     no warnings 'redefine';
 
-    return *{ $args{sub} } = $Not_Fatalized_Functions{$args{sub}};
+    return *{ Symbol::fetch_glob($args{sub}) } = $Not_Fatalized_Functions{$args{sub}};
 }
 
 
@@ -279,8 +287,9 @@ sub __fill_argvs {
         push(@code, "\$_[$n]"), next if $proto =~ s/^\s*([*\$&])//;
         push(@code, "\@_[$n..\$#_]"), last if $proto =~ s/^\s*(;\s*)?\@//;
         $seen_semi = 1, $n--, next if $proto =~ s/^\s*;//; # XXXX ????
-        throw Exception::Fatal::Compile
-              message => "Unknown prototype letters: \"$proto\"";
+        Exception::Fatal::Compile->throw(
+            message => "Unknown prototype letters: \"$proto\""
+        );
     }
     push(@protos,[$n+1,@code]);
     return \@protos;
@@ -296,12 +305,12 @@ sub __write_invocation {
     #   name  - base name of sub
     #   orig  - is function called as non-fatalized version?
     #   void  - is function called in scalar context?
-    my(%args) = @_;
+    my (%args) = @_;
 
     # check args
-    throw Exception::Fatal::Compilation
-          message => 'Not enough arguments for "' . __PACKAGE__ . '->__write_invocation"'
-        if grep { not defined } @args{qw< argvs call exception name >};
+    Exception::Fatal::Compilation->throw(
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__write_invocation"'
+    ) if grep { not defined } @args{qw< argvs call exception name >};
 
     my @argvs = @{ $args{argvs} };
 
@@ -312,9 +321,9 @@ sub __write_invocation {
         return
             "    "
             . __one_invocation(
-	        (map { $_ => $args{$_} } qw< call exception name orig void >),
+                (map { $_ => $args{$_} } qw< call exception name orig void >),
                 argv      => \@argv,
-	      )
+              )
             . ";\n";
     }
     else {
@@ -328,16 +337,17 @@ sub __write_invocation {
             push @out,
                 "        return "
                 . __one_invocation(
-	    	    (map { $_ => $args{$_} } qw< call exception name orig void >),
+                    (map { $_ => $args{$_} } qw< call exception name orig void >),
                     argv      => \@argv,
-		  )
+                  )
                 . ";\n";
         }
         push @out,
             "    }\n"
-          . "    throw Exception::Fatal\n"
-          . "          ignore_level => 1,\n"
-          . "          message => \"$args{name}: Do not expect to get \" . scalar \@_ . \" arguments\";\n";
+          . "    Exception::Fatal->throw(\n"
+          . "        ignore_level => 1,\n"
+          . "        message => \"$args{name}: Do not expect to get \" . scalar \@_ . \" arguments\"\n"
+          . "    );\n";
         return join '', @out;
     }
 }
@@ -352,12 +362,12 @@ sub __one_invocation {
     #   name - base name of sub
     #   orig - is function called as non-fatalized version?
     #   void - is function called in scalar context?
-    my(%args) = @_;
+    my (%args) = @_;
 
     # check args
-    throw Exception::Fatal::Compilation
-          message => 'Not enough arguments for "' . __PACKAGE__ . '->__one_invocation"'
-        if grep { not defined } @args{qw< argv call exception name >};
+    Exception::Fatal::Compilation->throw(
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__one_invocation"'
+    ) if grep { not defined } @args{qw< argv call exception name >};
 
     my $argv = join ', ', @{$args{argv}};
     if ($args{orig}) {
@@ -367,15 +377,17 @@ sub __one_invocation {
         return "(defined wantarray)\n"
              . "            ? $args{call}($argv)\n"
              . "            : $args{call}($argv)\n"
-             . "                || throw $args{exception}\n"
-             . "                         ignore_level => 1,\n"
-             . "                         message => \"Can't $args{name}\"";
+             . "                || $args{exception}->throw(\n"
+             . "                       ignore_level => 1,\n"
+             . "                       message => \"Can't $args{name}\"\n"
+             . "                   )";
     }
     else {
         return "$args{call}($argv)\n"
-             . "            || throw $args{exception}\n"
-             . "                     ignore_level => 1,\n"
-             . "                     message => \"Can't $args{name}\"";
+             . "            || $args{exception}->throw(\n"
+             . "                   ignore_level => 1,\n"
+             . "                   message => \"Can't $args{name}\"\n"
+             . "               )";
     }
 }
 
@@ -398,9 +410,9 @@ equivalents.  You may wrap both user-defined functions and overridable CORE
 operators (except exec, system which cannot be expressed via prototypes) in
 this way.
 
-If the symbol :void appears in the import list, then functions named later in
-that import list raise an exception only when these are called in void
-context.
+If the symbol B<:void> appears in the import list, then functions named
+later in that import list raise an exception only when these are called
+in void context.
 
 You should not fatalize functions that are called in list context, because
 this module tests whether a function has failed by testing the boolean truth
@@ -409,7 +421,7 @@ of its return value in scalar context.
 If the exception class is not exist, its module is loaded with "use
 I<Exception>" automatically.
 
-=item unimport Fatal::Exception I<function>, I<function>, ...
+=item no Fatal::Exception I<function>, I<function>, ...
 
 Restores original functions for user-defined functions or replaces the
 functions with do-without-die wrappers for CORE operators.
@@ -423,17 +435,17 @@ The functions can be wrapped and un-wrapped all the time.
 
 =head1 PERFORMANCE
 
-The L<Fatal::Exception> module was benchmarked with other implementations. 
+The L<Fatal::Exception> module was benchmarked with other implementations.
 The results are following:
 
   ---------------------------------------------------------------
   | Module                      | Success       | Failure       |
   ---------------------------------------------------------------
-  | eval/die                    |      263214/s |      234057/s |
+  | eval/die                    |      289616/s |      236308/s |
   ---------------------------------------------------------------
-  | Fatal                       |       98642/s |        8219/s |
+  | Fatal                       |       94627/s |        8967/s |
   ---------------------------------------------------------------
-  | Fatal::Exception            |      129152/s |        4932/s |
+  | Fatal::Exception            |      143479/s |        9677/s |
   ---------------------------------------------------------------
 
 =head1 SEE ALSO

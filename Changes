@@ -1,4 +1,12 @@
 ------------------------------------------------------------------------
+0.0203 | Piotr Roszatycki <dexter@debian.org> | 2008-04-19
+
+Changes:
+
+* Requires Exception::Base >= 0.15.
+* Drop indirect notation is POD and code.
+
+------------------------------------------------------------------------
 0.0202 | Piotr Roszatycki <dexter@debian.org> | 2008-04-13
 
 Changes:

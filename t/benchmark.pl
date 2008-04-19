@@ -101,7 +101,7 @@ sub test {
 
 package main;
 
-use Benchmark;
+use Benchmark ':all';
 
 my $result = timethese(-1, {
     '1_Ok'                      => sub { My::Ok::test; },
