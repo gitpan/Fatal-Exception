@@ -2,7 +2,7 @@
 
 package Fatal::Exception;
 use 5.006;
-our $VERSION = 0.02_03;
+our $VERSION = 0.02_04;
 
 =head1 NAME
 
@@ -90,11 +90,11 @@ sub import {
             (my $name = $sub) =~ s/^&?(.*::)?//;
 
             __make_fatal(
-                exception=>$exception,
-                name=>$name,
-                pkg=>$callpkg,
-                sub=>$sub,
-                void=>$void,
+                exception => $exception,
+                name      => $name,
+                pkg       => $callpkg,
+                sub       => $sub,
+                void      => $void,
             );
         }
     }
@@ -118,9 +118,9 @@ sub unimport {
         (my $name = $sub) =~ s/^&?(.*::)?//;
 
         __make_not_fatal(
-            name=>$name,
-            pkg=>$callpkg,
-            sub=>$sub
+            name => $name,
+            pkg  => $callpkg,
+            sub  => $sub
         );
     }
 }
@@ -136,7 +136,6 @@ sub __make_fatal {
     #   void - is function called in scalar context?
     my (%args) = @_;
 
-#$Debug=1; $SIG{__WARN__} = sub {}; $SIG{__DIE__} = sub { $@ = $_[0]; Exception::Base->throw(message=>"DIE:",max_arg_len=>0) };
     # check args
     Exception::Fatal::Compilation->throw(
         message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_fatal"'
@@ -291,7 +290,7 @@ sub __fill_argvs {
             message => "Unknown prototype letters: \"$proto\""
         );
     }
-    push(@protos,[$n+1,@code]);
+    push @protos, [$n+1, @code];
     return \@protos;
 }
 
@@ -451,10 +450,6 @@ The results are following:
 =head1 SEE ALSO
 
 L<Fatal>, L<Exception::Base>, L<Exception::System>
-
-=head1 TESTS
-
-The module was tested with L<Test::Unit::Lite> and L<Devel::Cover>.
 
 =head1 BUGS
 

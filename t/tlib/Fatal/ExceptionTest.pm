@@ -181,7 +181,7 @@ sub test_import {
     # : un-wrapped
     eval 'sub_test1 undef';
     $self->assert_equals('', $@);
-    
+
     # : wrapped
     eval 'opendir FOO, "/doesnotexists$^T$$"';
     $self->assert_not_equals('', $@);
@@ -191,7 +191,7 @@ sub test_import {
     eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
     $self->assert_not_equals('', $@);
     $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
-    
+
     # un-wrap un-wrapped
     eval 'Fatal::Exception->unimport("open", "sub_test1", ":void", "notexists$^T$$")';
 
@@ -212,7 +212,7 @@ sub test_import {
     eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
     $self->assert_not_equals('', $@);
     $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
-    
+
     # re-wrapping un-wrapped
     eval 'Fatal::Exception->import("Exception::Fatal::import::Test2", "open", "sub_test1", "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir")';
     $self->assert_equals('', $@);

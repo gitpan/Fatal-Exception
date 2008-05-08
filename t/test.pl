@@ -21,9 +21,11 @@ BEGIN {
 use Test::Unit::Lite;
 
 use Exception::Base
-    max_arg_nums => 0, verbosity => 4,
-    'Exception::Warning';
+    max_arg_nums => 0, max_arg_len => 200, verbosity => 3,
+    '+ignore_package' => [ qr/^Test::Unit::/, 'main' ],
+    'Fatal::Exception::Warning',
+    'Fatal::Exception::Died';
 
-local $SIG{__WARN__} = sub { $@ = $_[0]; Exception::Warning->throw(message => 'Warning', ignore_level => 1, max_arg_nums => 0, verbosity => 4) };
+local $SIG{__WARN__} = sub { Fatal::Exception::Warning->throw($_[0], ignore_level => 1) };
 
 all_tests;

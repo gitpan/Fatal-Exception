@@ -1,4 +1,11 @@
 ------------------------------------------------------------------------
+0.0204 | Piotr Roszatycki <dexter@debian.org> | 2008-05-08
+
+Changes:
+
+* Requires Exception::Base >= 0.16.
+
+------------------------------------------------------------------------
 0.0203 | Piotr Roszatycki <dexter@debian.org> | 2008-04-19
 
 Changes:
