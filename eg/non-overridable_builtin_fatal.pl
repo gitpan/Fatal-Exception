@@ -3,5 +3,4 @@
 use strict;
 use warnings;
 
-use Fatal::Exception
-    'Exception::System' => 'system';
+use Fatal::Exception 'Exception::System' => 'system';

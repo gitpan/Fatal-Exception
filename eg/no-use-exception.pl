@@ -3,6 +3,4 @@
 use strict;
 use warnings;
 
-use Fatal::Exception
-    'Exception::Nonexistent' => 'open';
-};
+use Fatal::Exception 'Exception::Nonexistent' => 'open';

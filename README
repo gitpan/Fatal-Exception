@@ -3,7 +3,7 @@ NAME
 
 SYNOPSIS
       use Fatal::Exception 'Exception::System' => qw< open close >;
-      open FILE, "/nonexistent";   # throw Exception::System
+      open my $fh, "/nonexistent";   # throw Exception::System
 
       use Exception::Base 'Exception::My';
       sub juggle { ... }

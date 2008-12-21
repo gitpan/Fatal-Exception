@@ -14,14 +14,12 @@ BEGIN {
     unshift @INC, File::Spec->catdir($cwd, 'lib');
 }
 
-use Test::Unit::Lite;
+use Test::Unit::Lite 0.10;
+use Test::Assert;
 
-use Exception::Base
-    max_arg_nums => 0, max_arg_len => 200, verbosity => 3,
-    '+ignore_package' => [ qr/^Test::Unit::/, 'main' ],
-    'Fatal::Exception::Warning',
-    'Fatal::Exception::Died';
-
-local $SIG{__WARN__} = sub { Fatal::Exception::Warning->throw($_[0], ignore_level => 1) };
+use Exception::Base max_arg_nums => 0, max_arg_len => 200, verbosity => 4;
+use Exception::Warning '%SIG' => 'die', verbosity => 4;
+use Exception::Died '%SIG', verbosity => 4;
+use Exception::Assertion verbosity => 4;
 
 Test::Unit::HarnessUnit->new->start('Test::Unit::Lite::AllTests');

@@ -38,4 +38,7 @@
 \.gz$
 \.ppd$
 \.tgz$
+\.deb$
+\bDebian_CPANTS.txt$
+
 \bFatal-Exception-

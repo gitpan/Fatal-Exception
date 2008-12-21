@@ -1,4 +1,22 @@
 ------------------------------------------------------------------------
+0.03 | Piotr Roszatycki <dexter@debian.org> | 2008-12-21
+
+New:
+
+* Wrapped functions throw Exception::Fatal if died.
+
+  use Fatal::Exception 'Exception::System' => 'open';
+  eval { open my $fh, '/notfound', 'r' };
+  print ref $@;  # Exception::System
+  eval { open my $fh, '/etc/passwd', 'badmode' };
+  print ref $@;  # Exception::Fatal
+
+Changes:
+
+* Exception::Argument and Exception::Fatal moved to separate package.
+* Build requires Exception::Warning, Exception::Died, Test::Assert.
+
+------------------------------------------------------------------------
 0.0204 | Piotr Roszatycki <dexter@debian.org> | 2008-05-08
 
 Changes:

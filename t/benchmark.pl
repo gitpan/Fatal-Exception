@@ -56,24 +56,30 @@ sub test {
 
 package My::ExceptionBase;
 use lib '../lib';	
-use Exception::Base ':all';
+use Exception::Base;
 our $n = 0;
 sub test {
-    try eval { opendir F, '/filenotfound' or Exception::Base->throw(message=>'Message'); };
-    if (catch my $e) {
-        if ($e->isa('Exception::Base') and $e->with('Message')) { $n++; }
+    eval {
+        opendir F, '/filenotfound' or Exception::Base->throw(message=>'Message');
+    };
+    if ($@) {
+        my $e = Exception::Base->catch;
+        if ($e->isa('Exception::Base') and $e->matches('Message')) { $n++; }
     }
 }
 
 
 package My::ExceptionBase1;
 use lib 'lib';	
-use Exception::Base ':all';
+use Exception::Base;
 our $n = 0;
 sub test {
-    try eval { opendir F, '/filenotfound' or Exception::Base->throw(message=>'Message', verbosity=>1); };
-    if (catch my $e) {
-        if ($e->isa('Exception::Base') and $e->with('Message')) { $n++; }
+    eval {
+        opendir F, '/filenotfound' or Exception::Base->throw(message=>'Message', verbosity=>1);
+    };
+    if ($@) {
+        my $e = Exception::Base->catch;
+        if ($e->isa('Exception::Base') and $e->matches('Message')) { $n++; }
     }
 }
 
@@ -92,9 +98,12 @@ our $n = 0;
 sub test {
     use Exception::Base ':all';
     use Fatal::Exception 'Exception::Base' => 'opendir';
-    try eval { opendir F, '/filenotfound' };
-    if (catch my $e) {
-        if ($e->isa('Exception::Base') and $e->with('Message')) { $n++; }
+    eval {
+        opendir F, '/filenotfound';
+    };
+    if ($@) {
+        my $e = Exception::Base->catch;
+        if ($e->isa('Exception::Base') and $e->matches('Message')) { $n++; }
     }
 }
 

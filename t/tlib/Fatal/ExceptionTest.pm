@@ -4,48 +4,48 @@ use strict;
 use warnings;
 
 use base 'Test::Unit::TestCase';
+use Test::Assert ':all';
 
 use Fatal::Exception;
 
 # non-CORE functions from own package
 sub sub_test1 {
     return shift();
-}
+};
 
 # non-CORE functions outer own package
 {
     package Fatal::ExceptionTest::Package1;
     sub sub_test2 {
         return shift();
-    }
-}
+    };
+};
 
 # Should be before import test. Test::Unit can't sort subs' names.
 sub test____sane {
-    my $self = shift;
-
     local *FOO;
 
     my $file = __FILE__;
+
     eval 'open FOO, "<", "$file"';
-    $self->assert_equals('', $@);
-    $self->assert_matches(qr/^package/, scalar(<FOO>));
+    die if $@;
+    assert_matches(qr/^package/, scalar(<FOO>));
 
     eval 'close FOO';
-    $self->assert_equals('', $@);
+    die if $@;
 
     eval 'opendir FOO, "."';
-    $self->assert_equals('', $@);
+    die if $@;
 
     eval 'close FOO';
-    $self->assert_equals('', $@);
+    die if $@;
 
     eval 'sub_test1 undef';
-    $self->assert_equals('', $@);
+    die if $@;
 
     eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
-    $self->assert_equals('', $@);
-}
+    die if $@;
+};
 
 sub test_import {
     my $self = shift;
@@ -53,193 +53,238 @@ sub test_import {
     local *FOO;
 
     # empty args
-    eval 'Fatal::Exception->import()';
-    $self->assert_equals('', $@);
-    eval 'Fatal::Exception->unimport()';
-    $self->assert_equals('', $@);
+    Fatal::Exception->import();
+    Fatal::Exception->unimport();
 
     # not enough args
-    eval 'Fatal::Exception->import("open")';
-    $self->assert_matches(qr/Not enough arguments/, $@);
+    assert_raises( ['Exception::Argument'], sub {
+        Fatal::Exception->import("open");
+    } );
 
     # not such exception
-    eval 'Fatal::Exception->import("Exception::Fatal::import::NotFound", "open")';
-    $self->assert_matches(qr/Cannot find/, $@);
+    assert_raises( ['Exception::Fatal'], sub {
+        Fatal::Exception->import("Exception::Fatal::import::NotFound", "open");
+    } );
 
     # not such function
-    eval 'Fatal::Exception->import("Exception::Fatal", "notsuchfunction$^T$$")';
-    $self->assert_matches(qr/is not a Perl subroutine/, $@);
+    assert_raises( ['Exception::Argument'], sub {
+        Fatal::Exception->import("Exception::Fatal", "notsuchfunction$^T$$");
+    } );
 
     # first wrapping
-    eval 'use Exception::Base "Exception::Fatal::import::Test1"';
-    $self->assert_equals('', $@);
-    eval 'Fatal::Exception->import("Exception::Fatal::import::Test1", "open", "sub_test1", "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir")';
-    $self->assert_equals('', $@);
+    Exception::Base->import("Exception::Fatal::import::Test1");
+    Fatal::Exception->import(
+        "Exception::Fatal::import::Test1", "open", "sub_test1",
+        "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir"
+    );
 
     my $file = __FILE__;
     eval 'open FOO, "<", "$file"';
-    $self->assert_equals('', $@);
-    $self->assert_matches(qr/^package/, scalar(<FOO>));
+    die if $@;
+    assert_matches(qr/^package/, scalar(<FOO>));
 
-    eval 'close FOO';
-    $self->assert_equals('', $@);
+    close FOO;
 
     # : too many args
-    eval 'open 1, 2, 3, 4, 5';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal', ref $@);
+    assert_raises( ['Exception::Argument'], sub {
+        eval 'open 1, 2, 3, 4, 5';
+        die if $@;
+    } );
 
     # : wrapped void=0
-    eval 'open FOO, "<", "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test1', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test1'], sub {
+        eval 'open FOO, "<", "/doesnotexists$^T$$"';
+        die if $@;
+    } );
+
+    # : wrapped void=0 with fatal error
+    assert_raises( ['Exception::Fatal'], sub {
+        eval 'open FOO, "badmode", "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in array context
-    eval 'opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test1', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test1'], sub {
+        eval 'opendir FOO, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
+
+    # : wrapped void=1 in array context with fatal error
+    assert_raises( ['Exception::Fatal'], sub {
+        eval 'opendir \1, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in scalar context
     eval 'my $ret1 = opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_equals('', $@);
+    die if $@;
+
+    # : wrapped void=1 in scalar context with fatal error
+    assert_raises( qr/^Not a GLOB/, sub {
+        eval 'my $ret1 = opendir \1, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped non-core, our package
-    eval 'sub_test1 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test1', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test1'], sub {
+        eval 'sub_test1 undef';
+        die if $@;
+    } );
 
     # : wrapped non-core, not our package
-    eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test1', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test1'], sub {
+        eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
+        die if $@;
+    } );
 
     # re-wrapping, another exception
-    eval 'use Exception::Base "Exception::Fatal::import::Test2"';
-    $self->assert_equals('', $@);
-    eval 'Fatal::Exception->import("Exception::Fatal::import::Test2", "open", "sub_test1", "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir")';
-    $self->assert_equals('', $@);
+    Exception::Base->import("Exception::Fatal::import::Test2");
+    Fatal::Exception->import(
+        "Exception::Fatal::import::Test2", "open", "sub_test1",
+        "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir"
+    );
 
     # : wrapped void=0
-    eval 'open FOO, "<", "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'open FOO, "<", "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in array context
-    eval 'opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'opendir FOO, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in scalar context
     eval 'my $ret1 = opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_equals('', $@);
+    die if $@;
 
     # : wrapped non-core, our package
-    eval 'sub_test1 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'sub_test1 undef';
+        die if $@;
+    } );
 
     # : wrapped non-core, not our package
-    eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
+        die if $@;
+    } );
 
     # re-wrapping, the same exception
-    eval 'Fatal::Exception->import("Exception::Fatal::import::Test2", "open", "sub_test1", "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir")';
-    $self->assert_equals('', $@);
+    Fatal::Exception->import(
+        "Exception::Fatal::import::Test2", "open", "sub_test1",
+        "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir"
+    );
 
     # : wrapped void=0
-    eval 'open FOO, "<", "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'open FOO, "<", "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in array context
-    eval 'opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'opendir FOO, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in scalar context
     eval 'my $ret1 = opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_equals('', $@);
+    die if $@;
 
     # : wrapped non-core, our package
-    eval 'sub_test1 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'sub_test1 undef';
+        die if $@;
+    } );
 
     # : wrapped non-core, not our package
-    eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
+        die if $@;
+    } );
 
     # un-wrap some functions
-    eval 'Fatal::Exception->unimport("open", "sub_test1", ":void", "notexists$^T$$")';
+    Fatal::Exception->unimport("open", "sub_test1", ":void", "notexists$^T$$");
 
     # : un-wrapped
     eval 'open FOO, "<", "/doesnotexists$^T$$"';
-    $self->assert_equals('', $@);
+    die if $@;
 
     # : un-wrapped
     eval 'sub_test1 undef';
-    $self->assert_equals('', $@);
+    die if $@;
 
     # : wrapped
-    eval 'opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'opendir FOO, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped non-core, not our package
-    eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
+        die if $@;
+    } );
 
     # un-wrap un-wrapped
     eval 'Fatal::Exception->unimport("open", "sub_test1", ":void", "notexists$^T$$")';
 
     # : un-wrapped
     eval 'open FOO, "<", "/doesnotexists$^T$$"';
-    $self->assert_equals('', $@);
+    die if $@;
 
     # : un-wrapped
     eval 'sub_test1 undef';
-    $self->assert_equals('', $@);
+    die if $@;
 
     # : wrapped
-    eval 'opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'opendir FOO, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped non-core, not our package
-    eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
+        die if $@;
+    } );
 
     # re-wrapping un-wrapped
-    eval 'Fatal::Exception->import("Exception::Fatal::import::Test2", "open", "sub_test1", "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir")';
-    $self->assert_equals('', $@);
+    Fatal::Exception->import(
+        "Exception::Fatal::import::Test2", "open", "sub_test1",
+        "Fatal::ExceptionTest::Package1::sub_test2", ":void", "opendir"
+    );
 
     # : wrapped void=0
-    eval 'open FOO, "<", "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'open FOO, "<", "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in array context
-    eval 'opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'opendir FOO, "/doesnotexists$^T$$"';
+        die if $@;
+    } );
 
     # : wrapped void=1 in scalar context
     eval 'my $ret1 = opendir FOO, "/doesnotexists$^T$$"';
-    $self->assert_equals('', $@);
+    die if $@;
 
     # : wrapped non-core, our package
-    eval 'sub_test1 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'sub_test1 undef';
+        die if $@;
+    } );
 
     # : wrapped non-core, not our package
-    eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
-    $self->assert_not_equals('', $@);
-    $self->assert_equals('Exception::Fatal::import::Test2', ref $@);
-}
+    assert_raises( ['Exception::Fatal::import::Test2'], sub {
+        eval 'Fatal::ExceptionTest::Package1::sub_test2 undef';
+        die if $@;
+    } );
+};
 
 1;
