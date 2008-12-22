@@ -3,15 +3,17 @@ require 5.006;
 use ExtUtils::MakeMaker;
 WriteMakefile
 (
+          'PL_FILES' => {},
+          'INSTALLDIRS' => 'site',
           'NAME' => 'Fatal::Exception',
+          'EXE_FILES' => [],
           'VERSION_FROM' => 'lib/Fatal/Exception.pm',
           'PREREQ_PM' => {
-                           'Exception::Base' => '0.21',
+                           'Exception::Warning' => 0,
+                           'Test::Unit::Lite' => '0.07',
+                           'Exception::Died' => 0,
                            'Test::Assert' => 0,
-                           'Test::Unit::Lite' => '0.07'
-                         },
-          'INSTALLDIRS' => 'site',
-          'EXE_FILES' => [],
-          'PL_FILES' => {}
+                           'Exception::Base' => '0.21'
+                         }
         )
 ;

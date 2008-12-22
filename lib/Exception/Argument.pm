@@ -32,13 +32,12 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 
 use Exception::Base 0.21 (
     'Exception::Argument' => {
         isa     => 'Exception::Died',
-        has     => [ 'function', 'method' ],
         message => 'Bad argument',
     },
 );
@@ -57,8 +56,6 @@ __END__
             Exception::Argument
  -----------------------------------------
  +message : Str = "Bad argument" {rw, new}
- +function : Str                 {rw, new}
- +method : Str                   {rw, new}
  -----------------------------------------
                                           ]
 
@@ -87,14 +84,6 @@ descriptions.
 
 Contains the message of the exception.  This class overrides the default value
 from L<Exception::Base> class.
-
-=item function : Str {rw}
-
-Contains the name of function which failed with bad argument.
-
-=item method : Str {rw}
-
-Contains the name of method which failed with bad argument.
 
 =back
 

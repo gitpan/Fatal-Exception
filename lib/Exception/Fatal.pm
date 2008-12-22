@@ -15,7 +15,7 @@ Exception::Fatal - Thrown when core function has a fatal error
   };
   if ($@) {
       my $e = Exception::Fatal->catch;
-      $e->throw( message => 'Cannot open', function => 'open' );
+      $e->throw( message => 'Cannot open' );
   };
 
 =head1 DESCRIPTION
@@ -31,13 +31,12 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 
 use Exception::Base 0.21 (
     'Exception::Fatal' => {
         isa       => 'Exception::Died',
-        has       => 'function',
         message   => 'Unknown function failed',
     },
 );
@@ -56,7 +55,6 @@ __END__
                     Exception::Fatal
  ----------------------------------------------------
  +message : Str = "Unknown function failed" {rw, new}
- +function : Str                            {rw, new}
  ----------------------------------------------------
                                                      ]
 
@@ -85,10 +83,6 @@ descriptions.
 
 Contains the message of the exception.  This class overrides the default value
 from L<Exception::Base> class.
-
-=item function : Str {rw}
-
-Contains the name of function which failed with fatal error.
 
 =back
 

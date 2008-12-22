@@ -1,5 +1,5 @@
 NAME
-    Fatal::Exception - succeed or throw exception
+    Fatal::Exception - Succeed or throw exception
 
 SYNOPSIS
       use Fatal::Exception 'Exception::System' => qw< open close >;
@@ -16,7 +16,8 @@ DESCRIPTION
     Fatal::Exception provides a way to conveniently replace functions which
     normally return a false value when they fail with equivalents which
     raise exceptions if they are not successful. This is the same as Fatal
-    module but it throws Exception::Base object on error.
+    module from Perl 5.8 and previous but it throws Exception::Base object
+    on error.
 
 AUTHOR
     Piotr Roszatycki <dexter@debian.org>

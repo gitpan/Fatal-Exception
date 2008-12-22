@@ -4,7 +4,7 @@ package Fatal::Exception;
 
 =head1 NAME
 
-Fatal::Exception - succeed or throw exception
+Fatal::Exception - Succeed or throw exception
 
 =head1 SYNOPSIS
 
@@ -20,10 +20,11 @@ Fatal::Exception - succeed or throw exception
 
 =head1 DESCRIPTION
 
-L<Fatal::Exception> provides a way to conveniently replace functions which
-normally return a false value when they fail with equivalents which raise
-exceptions if they are not successful.  This is the same as Fatal module but
-it throws L<Exception::Base> object on error.
+L<Fatal::Exception> provides a way to conveniently replace functions
+which normally return a false value when they fail with equivalents
+which raise exceptions if they are not successful.  This is the same as
+L<Fatal> module from Perl 5.8 and previous but it throws
+L<Exception::Base> object on error.
 
 =cut
 
@@ -32,7 +33,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 
 use Symbol ();
@@ -64,7 +65,6 @@ sub import {
 
     Exception::Argument->throw(
         message => 'Not enough arguments for "' . __PACKAGE__ . '->import"',
-        method  => 'import',
     ) unless @_;
 
     my $mod_version = $exception->VERSION || 0;
@@ -141,13 +141,11 @@ sub __make_fatal {
 
     # check args
     Exception::Argument->throw(
-        message  => 'Not enough arguments for "' . __PACKAGE__ . '->__make_fatal"',
-        function => '__make_fatal',
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_fatal"',
     ) if grep { not defined } @args{qw< exception name pkg sub >};
 
     Exception::Argument->throw(
-        message  => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name},
-        function => '__make_fatal',
+        message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name},
     ) if not $args{name} =~ /^\w+$/;
 
     my ($proto, $code_proto, $call, $core, $argvs);
@@ -172,8 +170,7 @@ sub __make_fatal {
 
         # not found as CORE subroutine
         Exception::Argument->throw(
-            message  => "\"$args{sub}\" is not a Perl subroutine",
-            function => '__make_fatal',
+            message => "\"$args{sub}\" is not a Perl subroutine",
         ) unless $proto;
 
         # create package's function
@@ -261,13 +258,11 @@ sub __make_not_fatal {
 
     # check args
     Exception::Argument->throw(
-        message  => 'Not enough arguments for "' . __PACKAGE__ . '->__make_non_fatal"',
-        function => '__make_not_fatal',
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__make_non_fatal"',
     ) if grep { not defined } @args{qw< name pkg sub >};
 
     Exception::Argument->throw(
-        message  => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name},
-        function => '__make_not_fatal',
+        message => 'Bad subroutine name for "' . __PACKAGE__ . '": ' . $args{name},
     ) if not $args{name} =~ /^\w+$/;
 
     # not wrapped - do nothing
@@ -308,8 +303,7 @@ sub __fill_argvs {
             next;
         };
         Exception::Argument->throw(
-            message  => "Unknown prototype letters: \"$proto\"",
-            function => '__fill_argvs',
+            message => "Unknown prototype letters: \"$proto\"",
         );
     };
     push @protos, [$n+1, @code];
@@ -330,8 +324,7 @@ sub __write_invocation {
 
     # check args
     Exception::Argument->throw(
-        message  => 'Not enough arguments for "' . __PACKAGE__ . '->__write_invocation"',
-        function => '__write_invocation',
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__write_invocation"',
     ) if grep { not defined } @args{qw< argvs call exception name >};
 
     my @argvs = @{ $args{argvs} };
@@ -392,8 +385,7 @@ sub __one_invocation {
 
     # check args
     Exception::Argument->throw(
-        message  => 'Not enough arguments for "' . __PACKAGE__ . '->__one_invocation"',
-        function => '__one_invocation',
+        message => 'Not enough arguments for "' . __PACKAGE__ . '->__one_invocation"',
     ) if grep { not defined } @args{qw< argv call exception name >};
 
     my $argv = join ', ', @{$args{argv}};
@@ -413,14 +405,12 @@ sub __one_invocation {
              . "                  if (\$@) {\n"
              . "                      Exception::Fatal->throw(\n"
              . "                          ignore_level => 1,\n"
-             . "                          function     => \"$args{name}\",\n"
              . "                          message      => \"Cannot $args{name}\",\n"
              . "                      );\n"
              . "                  };\n"
              . "                  \$return;\n"
              . "              } || $args{exception}->throw(\n"
              . "                       ignore_level => 1,\n"
-             . "                       function     => \"$args{name}\",\n"
              . "                       message      => \"Cannot $args{name}\",\n"
              . "                   )";
     }
@@ -438,14 +428,12 @@ sub __one_invocation {
              . "                  if (\$@) {\n"
              . "                      Exception::Fatal->throw(\n"
              . "                          ignore_level => 1,\n"
-             . "                          function     => \"$args{name}\",\n"
              . "                          message      => \"Cannot $args{name}\",\n"
              . "                      );\n"
              . "                  };\n"
              . "                  \@return;\n"
              . "              } || $args{exception}->throw(\n"
              . "                       ignore_level => 1,\n"
-             . "                       function     => \"$args{name}\",\n"
              . "                       message      => \"Cannot $args{name}\",\n"
              . "                   )\n"
              . "            : do {\n"
@@ -455,14 +443,12 @@ sub __one_invocation {
              . "                  if (\$@) {\n"
              . "                      Exception::Fatal->throw(\n"
              . "                          ignore_level => 1,\n"
-             . "                          function     => \"$args{name}\",\n"
              . "                          message      => \"Cannot $args{name}\",\n"
              . "                      );\n"
              . "                  };\n"
              . "                  \$return;\n"
              . "              } || $args{exception}->throw(\n"
              . "                       ignore_level => 1,\n"
-             . "                       function     => \"$args{name}\",\n"
              . "                       message      => \"Cannot $args{name}\",\n"
              . "                   )";
     };
@@ -492,7 +478,7 @@ this way.
 If wrapped function occurs fatal error, the error is converted into
 L<Exception::Fatal> exception.
 
-If the symbol B<:void> appears in the import list, then functions named
+If the symbol C<:void> appears in the import list, then functions named
 later in that import list raise an exception only when these are called
 in void context.
 
@@ -532,7 +518,18 @@ The results are following:
 
 =head1 SEE ALSO
 
-L<Fatal>, L<Exception::Base>, L<Exception::System>
+This module is a fork of L<Fatal> module from Perl 5.8.  The latest Perl
+will replace the L<Fatal> module with L<autodie> module which is similar
+to C<Fatal::Exception>.
+
+The C<Fatal::Exception> doesn't work with lexical scope, yet.  It also
+doesn't support L<perlfunc/system> or L<perlfunc/exec> core functions
+and extra import tags.  It throws L<Exception::Base>-d exceptions on
+failure so they can be handled as other L<Exception::Base>-d exceptions.
+
+More details:
+
+L<Fatal>, L<autodie>, L<Exception::Base>, L<Exception::System>
 
 =head1 BUGS
 

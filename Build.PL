@@ -13,10 +13,12 @@ my $build = Module::Build->new(
     requires => {
         'perl'               => 5.006,
         'Exception::Base'    => 0.21,
+	'Exception::Died'    => 0,
     },
     optional => {
     },
     build_requires => {
+	'Exception::Warning' => 0,
 	'Test::Assert'       => 0,
 	'Test::Unit::Lite'   => 0.07,
     },

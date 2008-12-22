@@ -1,5 +1,17 @@
 ------------------------------------------------------------------------
-0.03 | Piotr Roszatycki <dexter@debian.org> | 2008-12-21
+0.05 | Piotr Roszatycki <dexter@debian.org> | 2008-12-22
+
+Changes:
+
+* Dropped additional attributes for Exception::Fatal and Exception::Argument.
+* Requires Exception::Died.
+
+Fixes:
+
+* Minor fixes for documentation.
+
+------------------------------------------------------------------------
+0.04 | Piotr Roszatycki <dexter@debian.org> | 2008-12-22
 
 New:
 
